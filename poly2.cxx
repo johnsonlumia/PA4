@@ -28,15 +28,24 @@ namespace main_savitch_5
     polynomial::polynomial(double c, unsigned int exponent) {
         head_ptr = new polynode;
         tail_ptr = head_ptr;
+        recent_ptr = head_ptr;
+        current_degree = tail_ptr->exponent();
         if (exponent != 0) {
             assign_coef(c,exponent);
         }
-        current_degree = tail_ptr->exponent();
+        // current_degree = tail_ptr->exponent();
     }
     
     // copy constructor
     polynomial::polynomial(const polynomial& source) {
-        
+        head_ptr = new polynode;
+        tail_ptr = head_ptr;
+        assign_coef(source.coefficient(0),0);
+        unsigned int exponent = 1;
+        while (exponent != 0) {
+            assign_coef(source.coefficient(exponent),exponent);
+            exponent = source.next_term(exponent);
+        }
     }
     
     // destructor
@@ -47,30 +56,27 @@ namespace main_savitch_5
             n = n->fore();
             delete garbage;
         }
+        recent_ptr = 0;
     }
     
     // modification member functions
     polynomial& polynomial::operator = (const polynomial& source) {
-        /*
         if(this == &source)
             return *this;
-        if(size != source.size) {
-            double *coefNew;
-            coefNew = new double[source.size];
-            delete [] coef;
-            coef = coefNew;
-            size = source.size;
+        clear();
+        assign_coef(source.coefficient(0),0);
+        unsigned int exponent = 1;
+        while (exponent != 0) {
+            assign_coef(source.coefficient(exponent),exponent);
+            exponent = source.next_term(exponent);
         }
-        current_degree = source.current_degree;
-        for(int i=0; i<=current_degree; i++)
-            coef[i] = source.coef[i];*/
         return *this;
     }
     
     void polynomial::add_to_coef(double amount, unsigned int exponent) {
         set_recent(exponent);
         if (recent_ptr->exponent() == exponent) {
-            exponent += recent_ptr->exponent();
+            amount += recent_ptr->coef();
             assign_coef(amount,exponent);
         } else {
             assign_coef(amount,exponent);
@@ -98,7 +104,8 @@ namespace main_savitch_5
             recent_ptr->set_coef(coefficient);
         } else if (exponent == degree()) {
             polynode *garbage = tail_ptr;
-            tail_ptr = tail_ptr->fore();
+            tail_ptr = tail_ptr->back();
+            tail_ptr->set_fore(0);
             delete garbage;
             recent_ptr = tail_ptr;
         } else {
@@ -115,13 +122,16 @@ namespace main_savitch_5
         polynode *n = head_ptr;
         assign_coef(0,0);
         tail_ptr = head_ptr;
+        recent_ptr = head_ptr;
         head_ptr->set_fore(0);
         n = n->fore();
+        // head_ptr->set_fore(0);
         while (n) {
             polynode *garbage = n;
             n = n->fore();
             delete garbage;
         }
+        current_degree = 0;
     }
     
     void polynomial::set_recent(unsigned int exponent) const {
@@ -144,7 +154,7 @@ namespace main_savitch_5
         }
     }
     
-    //constant member functions
+    // constant member functions
     double polynomial::coefficient(unsigned int exponent) const {
         if (exponent > current_degree) {
             return 0;
@@ -157,6 +167,29 @@ namespace main_savitch_5
         }
     }
     
+    // next_term and previous_term
+    unsigned int polynomial::next_term(unsigned int e) const {
+        set_recent(e);
+        if (recent_ptr == tail_ptr) {
+            return 0;
+        } else {
+            return recent_ptr->fore()->exponent();
+        }
+    }
+    
+    unsigned int polynomial::previous_term(unsigned int e) const {
+        if (e == 0) {
+            return UINT_MAX;
+        }
+        set_recent(e-1);
+        if (recent_ptr->coef() == 0) {
+            return UINT_MAX;
+        } else {
+            return recent_ptr->exponent();
+        }
+    }
+    
+    // answer provided
     polynomial polynomial::derivative( ) const {
         polynomial result;
         for (unsigned int exponent = 1;
